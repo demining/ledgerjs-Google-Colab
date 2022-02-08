@@ -23,7 +23,7 @@ const clearDisconnectTimeout = () => {
 
 const setDisconnectTimeout = () => {
   disconnectTimeout = setTimeout(
-    () => TransportNodeHidSingleton.disconnect(),
+    () => TransportNodeHidSingleton.autoDisconnect(),
     DISCONNECT_TIMEOUT
   );
 };
@@ -37,6 +37,7 @@ const setDisconnectTimeout = () => {
  */
 
 export default class TransportNodeHidSingleton extends TransportNodeHidNoEvents {
+  preventAutoDisconnect = false;
   /**
    *
    */
@@ -105,6 +106,19 @@ export default class TransportNodeHidSingleton extends TransportNodeHidNoEvents 
   };
 
   /**
+   * convenience wrapper for auto-disconnect logic
+   */
+  static async autoDisconnect(): void {
+    if (transportInstance && transportInstance.preventAutoDisconnect) {
+      TransportNodeHidSingleton.disconnect();
+    } else if (transportInstance) {
+      // If we have disabled the auto-disconnect, try again in DISCONNECT_TIMEOUT
+      clearDisconnectTimeout();
+      setDisconnectTimeout();
+    }
+  }
+
+  /**
    * globally disconnect the transport singleton
    */
   static async disconnect() {
@@ -156,6 +170,10 @@ export default class TransportNodeHidSingleton extends TransportNodeHidNoEvents 
     });
   }
 
+  setAllowAutoDisconnect(allow: boolean): void {
+    this.preventAutoDisconnect = allow;
+  }
+
   /**
    * Exchange with the device using APDU protocol.
    * @param apdu
@@ -169,7 +187,9 @@ export default class TransportNodeHidSingleton extends TransportNodeHidNoEvents 
   }
 
   close(): Promise<void> {
-    // intentionally, a close will not effectively close the hid connection
+    // intentionally, a close will not effectively close the hid connection but
+    // will allow an auto-disconnection after some inactivity
+    this.preventAutoDisconnect = false;
     return Promise.resolve();
   }
 }

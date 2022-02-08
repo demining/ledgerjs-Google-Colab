@@ -177,6 +177,13 @@ export default class Transport {
   }
 
   /**
+   * For transport implementations that require auto-disconnection to release the device
+   * @param flag whether we should be blocking the auto-disconnect or not.
+   * @return void
+   */
+  setAllowAutoDisconnect(_: boolean): void {}
+
+  /**
    * wrapper on top of exchange to simplify work of the implementation.
    * @param cla
    * @param ins
